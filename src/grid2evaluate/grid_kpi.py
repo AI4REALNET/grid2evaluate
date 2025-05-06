@@ -7,5 +7,5 @@ class GridKpi(ABC):
         self.name = name
 
     @abstractmethod
-    def evaluate(self, directory: Path) -> float:
+    def evaluate(self, directory: Path) -> list[float]:
         pass

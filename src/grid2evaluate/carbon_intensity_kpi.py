@@ -9,7 +9,7 @@ class CarbonIntensityKpi(GridKpi):
     def __init__(self):
         super().__init__("Carbon Intensity")
 
-    def evaluate(self, directory: Path) -> float:
+    def evaluate(self, directory: Path) -> list[float]:
         gen_table = pq.read_table(directory / 'gen.parquet')
         gen_p_before_curtail_table = pq.read_table(directory / 'gen_p_before_curtail.parquet')
         gen_p_table = pq.read_table(directory / 'gen_p.parquet')
@@ -39,4 +39,4 @@ class CarbonIntensityKpi(GridKpi):
         for gen_type, energy in energy_by_gen_type.items():
             weighted_energy_sum += energy * emission_factor[gen_type]
 
-        return weighted_energy_sum / sum(energy_by_gen_type.values())
+        return [weighted_energy_sum / sum(energy_by_gen_type.values())]
