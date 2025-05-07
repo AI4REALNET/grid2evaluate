@@ -39,4 +39,5 @@ class CarbonIntensityKpi(GridKpi):
         for gen_type, energy in energy_by_gen_type.items():
             weighted_energy_sum += energy * emission_factor[gen_type]
 
-        return [weighted_energy_sum / sum(energy_by_gen_type.values())]
+        sum_energy_by_gen_type = sum(energy_by_gen_type.values())
+        return [weighted_energy_sum / sum_energy_by_gen_type] if sum_energy_by_gen_type > 0 else [0]
