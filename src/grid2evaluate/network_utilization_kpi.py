@@ -49,7 +49,7 @@ class NetworkUtilizationKpi(GridKpi):
 
             result = analysis.run_ac(network_wrapper.network, parameters)
 
-            # FIXME what should be done in case of divergence on N and N-1 states ?
+            # TODO what should be done in case of divergence on N and N-1 states ?
             if result.pre_contingency_result.status != pp.loadflow.ComponentStatus.CONVERGED:
                 logger.warning(f"Calculation failed at time {time_index} with {result.pre_contingency_result.status}")
                 raise Exception("Load flow did not converge on N state")

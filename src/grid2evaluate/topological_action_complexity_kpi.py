@@ -48,31 +48,46 @@ class TopologicalActionComplexityKpi(GridKpi):
         return [len(connected_buses) for connected_buses in connected_buses]
 
     def evaluate(self, directory: Path) -> list[float]:
+        # step 1
         action_table = pq.read_table(directory / 'actions.parquet')
         time_col = action_table['time']
 
-        # get topo actions for each step
+        # step 2: get topo actions for each step
         n_topo = [0] * len(time_col)
         for (i, row) in enumerate(action_table.to_pandas().itertuples()):
             actions = json.loads(row.action)
             only_topo_actions = self.filter_action(actions)
             n_topo[i] = len(only_topo_actions)
 
+        # step 3
         min_topo = min(count for count in n_topo)
+
+        # step 4
         max_topo = max(count for count in n_topo)
+
+        # step 5
         avg_topo = mean(count for count in n_topo)
 
+        # step 6
         n_connected_buses = self.get_connected_buses(directory)
 
+        # step 7
         delta_connected_bus = [0] + [n_connected_buses[i] - n_connected_buses[i - 1]
                                               for i in range(1, len(n_connected_buses))]
 
+        # step 8
         with open(directory / "env.json", "r", encoding="utf-8") as f:
             env_data = json.load(f)
         n_max_bus = env_data["n_sub"]  * env_data["n_busbar_per_sub"]
 
+        # step 9
         min_bus = min(delta * 100 / n_max_bus for delta in delta_connected_bus)
+
+        # step 10
         max_bus = max(delta * 100 / n_max_bus for delta in delta_connected_bus)
+
+        # step 11
         avg_bus = mean(delta * 100 / n_max_bus for delta in delta_connected_bus)
 
+        # step 12
         return [min_topo, max_topo, avg_topo, min_bus, max_bus, avg_bus]

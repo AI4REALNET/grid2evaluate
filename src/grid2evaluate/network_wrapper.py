@@ -139,4 +139,4 @@ class NetworkWrapper:
         self._update_loads(load_table, load_p, load_q, load_bus, time_index, loads, buses)
         self._update_generators(gen_table, gen_p, gen_q, gen_bus, time_index, generators, buses)
         self._update_lines(line_table, line_or_bus, line_ex_bus, time_index, branches, buses)
-        # FIXME process shunts and batteries
+        # TODO process shunts and batteries
