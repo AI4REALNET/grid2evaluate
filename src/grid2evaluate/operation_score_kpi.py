@@ -5,7 +5,7 @@ import pyarrow.parquet as pq
 from grid2evaluate.actions import Actions
 from grid2evaluate.energy_util import calculate_dispatched_energy_by_generator, \
     calculate_curtailment_energy_by_generator, calculate_lost_energy_by_generator, \
-    calculate_balancing_energy_by_generator, calculate_backout_energy
+    calculate_balancing_energy_by_generator, calculate_blackout_energy
 from grid2evaluate.grid_kpi import GridKpi
 
 
@@ -62,6 +62,6 @@ class OperationScoreKpi(GridKpi):
         e_lost = calculate_lost_energy_by_generator(gen_table, gen_p_table, load_table, load_p_table)
 
         # step 13
-        e_backout = calculate_backout_energy(action_table, load_table, load_p_table)
+        e_blackout = calculate_blackout_energy(action_table, load_table, load_p_table)
 
-        return [n_topo_sum, n_redispatch_sum, e_redispatch, e_balancing, n_curtail_sum, e_curtailment, e_lost, e_backout]
+        return [n_topo_sum, n_redispatch_sum, e_redispatch, e_balancing, n_curtail_sum, e_curtailment, e_lost, e_blackout]
