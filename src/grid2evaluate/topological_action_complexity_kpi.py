@@ -1,33 +1,16 @@
-import json
 from pathlib import Path
 from statistics import mean
 
 import pyarrow.parquet as pq
 
+from grid2evaluate.actions import Actions
+from grid2evaluate.env_data import EnvData
 from grid2evaluate.grid_kpi import GridKpi
 
 
 class TopologicalActionComplexityKpi(GridKpi):
     def __init__(self):
         super().__init__("Topological action complexity")
-
-    @staticmethod
-    def filter_action(actions: dict) -> dict:
-        only_topo_actions = {}
-        for action_type in ['set_bus',
-                            'change_bus']:
-            if action_type in actions:
-                if 'lines_or_id' in actions[action_type] or 'lines_ex_id' in actions[action_type]:
-                    only_topo_actions[action_type] = actions[action_type]
-        for action_type in ['line_or_set_bus',
-                            'line_ex_set_bus',
-                            'line_or_change_bus',
-                            'line_ex_change_bus',
-                            'line_set_status',
-                            'line_change_status']:
-            if action_type in actions:
-                only_topo_actions[action_type] = actions[action_type]
-        return only_topo_actions
 
     @staticmethod
     def get_connected_buses(directory: Path) -> list[int]:
@@ -48,16 +31,10 @@ class TopologicalActionComplexityKpi(GridKpi):
         return [len(connected_buses) for connected_buses in connected_buses]
 
     def evaluate(self, directory: Path) -> list[float]:
-        # step 1
+        # step 1 and 2: get topo actions for each step
         action_table = pq.read_table(directory / 'actions.parquet')
-        time_col = action_table['time']
-
-        # step 2: get topo actions for each step
-        n_topo = [0] * len(time_col)
-        for (i, row) in enumerate(action_table.to_pandas().itertuples()):
-            actions = json.loads(row.action)
-            only_topo_actions = self.filter_action(actions)
-            n_topo[i] = len(only_topo_actions)
+        topo_actions = Actions.load(action_table).filter_topo_actions()
+        n_topo = [len(acts) for acts in topo_actions]
 
         # step 3
         min_topo = min(count for count in n_topo)
@@ -76,9 +53,8 @@ class TopologicalActionComplexityKpi(GridKpi):
                                               for i in range(1, len(n_connected_buses))]
 
         # step 8
-        with open(directory / "env.json", "r", encoding="utf-8") as f:
-            env_data = json.load(f)
-        n_max_bus = env_data["n_sub"]  * env_data["n_busbar_per_sub"]
+        env_data = EnvData.load(directory)
+        n_max_bus = env_data.json["n_sub"]  * env_data.json["n_busbar_per_sub"]
 
         # step 9
         min_bus = min(delta * 100 / n_max_bus for delta in delta_connected_bus)

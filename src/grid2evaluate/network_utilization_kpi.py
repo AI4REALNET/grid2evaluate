@@ -1,4 +1,3 @@
-import json
 import logging
 from pathlib import Path
 
@@ -6,6 +5,7 @@ import numpy as np
 import pyarrow.parquet as pq
 import pypowsybl as pp
 
+from grid2evaluate.env_data import EnvData
 from grid2evaluate.grid_kpi import GridKpi
 from grid2evaluate.network_wrapper import NetworkWrapper
 
@@ -24,15 +24,10 @@ class NetworkUtilizationKpi(GridKpi):
         return rho
 
     @staticmethod
-    def load_env(directory: Path) -> dict:
-        with open(directory / "env.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    @staticmethod
     def run_security_analysis(network_wrapper: NetworkWrapper,
                               contingency_ids: list[str],
                               monitored_element_ids: list[str],
-                              time_col,
+                              time_col, done_col,
                               load_table, load_p, load_q, load_bus,
                               gen_table, gen_p, gen_v, gen_bus,
                               line_table, line_or_bus, line_ex_bus) -> list[dict]:
@@ -42,6 +37,9 @@ class NetworkUtilizationKpi(GridKpi):
         analysis.add_monitored_elements(branch_ids=monitored_element_ids)
         flows = [{} for _ in range(len(time_col))]
         for time_index in range(len(time_col)):
+            if done_col[time_index]:
+                continue
+
             network_wrapper.update_network(load_table, load_p, load_q, load_bus,
                                            gen_table, gen_p, gen_v, gen_bus,
                                            line_table, line_or_bus, line_ex_bus,
@@ -82,6 +80,9 @@ class NetworkUtilizationKpi(GridKpi):
         return rho
 
     def evaluate(self, directory: Path) -> list[float]:
+        action_table = pq.read_table(directory / 'actions.parquet')
+        done_col = action_table['done']
+
         gen_table = pq.read_table(directory / 'gen.parquet')
         load_table = pq.read_table(directory / 'load.parquet')
         line_table = pq.read_table(directory / 'line.parquet')
@@ -103,8 +104,8 @@ class NetworkUtilizationKpi(GridKpi):
         # step 2
         rho_n_max = np.max(rho_n)
 
-        env = self.load_env(directory)
-        n_busbar_per_sub = env["n_busbar_per_sub"]
+        env = EnvData.load(directory)
+        n_busbar_per_sub = env.json["n_busbar_per_sub"]
 
         network_wrapper = NetworkWrapper.load(directory, n_busbar_per_sub)
 
@@ -116,7 +117,7 @@ class NetworkUtilizationKpi(GridKpi):
         monitored_element_ids = all_branches_ids
         security_analysis_flows = self.run_security_analysis(network_wrapper,
                                                              contingency_ids, monitored_element_ids,
-                                                             time_col,
+                                                             time_col, done_col,
                                                              load_table, load_p, load_q, load_bus,
                                                              gen_table, gen_p, gen_v, gen_bus,
                                                              line_table, line_or_bus, line_ex_bus)

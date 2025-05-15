@@ -97,15 +97,18 @@ class NetworkWrapper:
         id = []
         target_p = []
         target_v = []
+        voltage_regulator_on = []
         bus_id = []
         connected = []
         for name, p_col, v_col, bus_col in zip(gen_table['name'], gen_p.columns[1:], gen_v.columns[1:], gen_bus.columns[1:]):
             id.append(self.get_id_from_name(generators, name.as_py()))
             target_p.append(p_col[time_index].as_py())
-            target_v.append(v_col[time_index].as_py())
+            v = v_col[time_index].as_py()
+            voltage_regulator_on.append(False if v <= 0 else True)
+            target_v.append(v)
             self._fill_bus_id_and_connected(name=name.as_py(), bus_local_num=bus_col[time_index].as_py(), bus_id=bus_id,
                                             connected=connected, elements=generators, buses=buses, voltage_level_id_attr='voltage_level_id')
-        self._network.update_generators(id=id, target_p=target_p, target_v=target_v, bus_breaker_bus_id=bus_id, connected=connected)
+        self._network.update_generators(id=id, target_p=target_p, voltage_regulator_on=voltage_regulator_on, target_v=target_v, bus_breaker_bus_id=bus_id, connected=connected)
 
     def _update_lines(self, line_table, line_or_bus, line_ex_bus, time_index: int, branches: pd.DataFrame, buses: pd.DataFrame):
         id = []

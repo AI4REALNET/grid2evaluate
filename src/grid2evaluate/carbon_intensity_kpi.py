@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
+from grid2evaluate.energy_util import calculate_dispatched_energy_by_generator, \
+    calculate_curtailment_energy_by_generator
 from grid2evaluate.grid_kpi import GridKpi
 
 
@@ -20,19 +22,11 @@ class CarbonIntensityKpi(GridKpi):
         gen_p_table = pq.read_table(directory / 'gen_p.parquet')
 
         # step 4
-        e_curtailment = [0] * len(gen_table)
-        time_col = gen_p_before_curtail_table['time']
-        for (gen_index, gen_name) in enumerate(gen_table['name']):
-            gen_p_before_curtail_col = gen_p_before_curtail_table[str(gen_name)]
-            gen_p_col = gen_p_table[str(gen_name)]
-            for time_index, (time, gen_p_before_curtail, gen_p) in enumerate(zip(time_col,
-                                                                                 gen_p_before_curtail_col,
-                                                                                 gen_p_col)):
-                duration_step = (time.as_py() - time_col[time_index - 1].as_py()) / 3600 if time_index > 0 else 0
-                e_curtailment[gen_index] += (gen_p.as_py() - gen_p_before_curtail.as_py()) * duration_step
+        e_curtailment = calculate_curtailment_energy_by_generator(gen_table, gen_p_before_curtail_table, gen_p_table)
 
-        # step 5: TODO
-        e_redispatch = [0] * len(gen_table)
+        # step 5
+        gen_actual_dispatch_table = pq.read_table(directory / 'gen_actual_dispatch.parquet')
+        e_redispatch = calculate_dispatched_energy_by_generator(gen_table, gen_actual_dispatch_table)
 
         # step 6:
         energy = e_curtailment + e_redispatch
