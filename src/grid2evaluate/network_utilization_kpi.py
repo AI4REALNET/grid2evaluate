@@ -30,12 +30,14 @@ class NetworkUtilizationKpi(GridKpi):
                               time_col, done_col,
                               load_table, load_p, load_q, load_bus,
                               gen_table, gen_p, gen_v, gen_bus,
-                              line_table, line_or_bus, line_ex_bus) -> list[dict]:
+                              line_table, line_or_bus, line_ex_bus) -> tuple[list[dict], int, int]:
         parameters = pp.loadflow.Parameters(voltage_init_mode=pp.loadflow.VoltageInitMode.DC_VALUES)
         analysis = pp.security.create_analysis()
         analysis.add_single_element_contingencies(contingency_ids)
         analysis.add_monitored_elements(branch_ids=monitored_element_ids)
         flows = [{} for _ in range(len(time_col))]
+        n_div = 0
+        n1_div = 0
         for time_index in range(len(time_col)):
             if done_col[time_index]:
                 continue
@@ -48,16 +50,19 @@ class NetworkUtilizationKpi(GridKpi):
             result = analysis.run_ac(network_wrapper.network, parameters)
 
             # TODO what should be done in case of divergence on N and N-1 states ?
-            if result.pre_contingency_result.status != pp.loadflow.ComponentStatus.CONVERGED:
+            if result.pre_contingency_result.status == pp.loadflow.ComponentStatus.CONVERGED:
+                for contingency_id, post_contingency_result in result.post_contingency_results.items():
+                    if post_contingency_result.status != pp.security.ComputationStatus.CONVERGED:
+                        n1_div += 1
+                        logger.warning(
+                            f"Calculation failed at time {time_index} and contingency '{contingency_id}' with {post_contingency_result.status}")
+            else:
                 logger.warning(f"Calculation failed at time {time_index} with {result.pre_contingency_result.status}")
-                raise Exception("Load flow did not converge on N state")
-            for contingency_id, post_contingency_result in result.post_contingency_results.items():
-                if post_contingency_result.status != pp.security.ComputationStatus.CONVERGED:
-                    logger.warning(f"Calculation failed at time {time_index} and contingency '{contingency_id}' with {post_contingency_result.status}")
+                n_div += 1
 
             for (contingency_id, _, branch_id), row in result.branch_results.iterrows():
                 flows[time_index][(contingency_id, branch_id)] = (row.i1, row.i2)
-        return flows
+        return flows, n_div, n1_div
 
     @staticmethod
     def compute_rho_n1(network_wrapper: NetworkWrapper,
@@ -115,16 +120,16 @@ class NetworkUtilizationKpi(GridKpi):
         all_branches_ids = network_wrapper.network.get_branches(attributes=[]).index.tolist()
         contingency_ids = all_branches_ids
         monitored_element_ids = all_branches_ids
-        security_analysis_flows = self.run_security_analysis(network_wrapper,
-                                                             contingency_ids, monitored_element_ids,
-                                                             time_col, done_col,
-                                                             load_table, load_p, load_q, load_bus,
-                                                             gen_table, gen_p, gen_v, gen_bus,
-                                                             line_table, line_or_bus, line_ex_bus)
+        flows, n_div, n1_div = self.run_security_analysis(network_wrapper,
+                                                          contingency_ids, monitored_element_ids,
+                                                          time_col, done_col,
+                                                          load_table, load_p, load_q, load_bus,
+                                                          gen_table, gen_p, gen_v, gen_bus,
+                                                          line_table, line_or_bus, line_ex_bus)
 
         # step 3
         rho_n1 = self.compute_rho_n1(network_wrapper,
-                                     contingency_ids, monitored_element_ids, security_analysis_flows,
+                                     contingency_ids, monitored_element_ids, flows,
                                      time_col, line_table, line_thermal_limit)
 
         # step 4
@@ -143,4 +148,4 @@ class NetworkUtilizationKpi(GridKpi):
         overload_n1 = np.sum(rho_n1 > 1) * 100.0 / np.size(rho_n1)
 
         # step 9
-        return [rho_n_max, rho_n1_max, rho_n_avg, rho_n1_avg, overload_n, overload_n1]
+        return [rho_n_max, rho_n1_max, rho_n_avg, rho_n1_avg, overload_n, overload_n1, n_div, n1_div]
