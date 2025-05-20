@@ -30,6 +30,7 @@ class NetworkUtilizationKpi(GridKpi):
                               time_col, done_col,
                               load_table, load_p, load_q, load_bus,
                               gen_table, gen_p, gen_v, gen_bus,
+                              storage_table, storage_power, storage_bus,
                               line_table, line_or_bus, line_ex_bus) -> tuple[list[dict], int, int]:
         parameters = pp.loadflow.Parameters(voltage_init_mode=pp.loadflow.VoltageInitMode.DC_VALUES)
         analysis = pp.security.create_analysis()
@@ -44,6 +45,7 @@ class NetworkUtilizationKpi(GridKpi):
 
             network_wrapper.update_network(load_table, load_p, load_q, load_bus,
                                            gen_table, gen_p, gen_v, gen_bus,
+                                           storage_table, storage_power, storage_bus,
                                            line_table, line_or_bus, line_ex_bus,
                                            time_index)
 
@@ -90,6 +92,7 @@ class NetworkUtilizationKpi(GridKpi):
 
         gen_table = pq.read_table(directory / 'gen.parquet')
         load_table = pq.read_table(directory / 'load.parquet')
+        storage_table = pq.read_table(directory / 'storage.parquet')
         line_table = pq.read_table(directory / 'line.parquet')
 
         gen_p = pq.read_table(directory / 'gen_p.parquet')
@@ -98,6 +101,8 @@ class NetworkUtilizationKpi(GridKpi):
         load_p = pq.read_table(directory / 'load_p.parquet')
         load_q = pq.read_table(directory / 'load_q.parquet')
         load_bus = pq.read_table(directory / 'load_bus.parquet')
+        storage_power = pq.read_table(directory / 'storage_power.parquet')
+        storage_bus = pq.read_table(directory / 'storage_bus.parquet')
         line_or_bus = pq.read_table(directory / 'line_or_bus.parquet')
         line_ex_bus = pq.read_table(directory / 'line_ex_bus.parquet')
         line_rho = pq.read_table(directory / 'line_rho.parquet')
@@ -112,7 +117,7 @@ class NetworkUtilizationKpi(GridKpi):
         env = EnvData.load(directory)
         n_busbar_per_sub = env.json["n_busbar_per_sub"]
 
-        network_wrapper = NetworkWrapper.load(directory, n_busbar_per_sub)
+        network_wrapper = NetworkWrapper.load(Path(env.json['path']), n_busbar_per_sub)
 
         time_col = gen_p['time']
 
@@ -125,6 +130,7 @@ class NetworkUtilizationKpi(GridKpi):
                                                           time_col, done_col,
                                                           load_table, load_p, load_q, load_bus,
                                                           gen_table, gen_p, gen_v, gen_bus,
+                                                          storage_table, storage_power, storage_bus,
                                                           line_table, line_or_bus, line_ex_bus)
 
         # step 3
