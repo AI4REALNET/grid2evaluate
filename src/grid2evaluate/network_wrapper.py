@@ -159,4 +159,3 @@ class NetworkWrapper:
         self._update_generators(gen_table, gen_p, gen_q, gen_bus, time_index, generators, buses)
         self._update_batteries(storage_table, storage_power, storage_bus, time_index, batteries)
         self._update_lines(line_table, line_or_bus, line_ex_bus, time_index, branches, buses)
-        # TODO process shunts and batteries
