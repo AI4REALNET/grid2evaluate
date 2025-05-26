@@ -1,0 +1,12 @@
+[project]
+name = "grid2evaluate"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.2.3",
+    "pyarrow>=20.0.0",
+    "pypowsybl>=1.11.0",
+    "pandapower==2.14.11"
+]
