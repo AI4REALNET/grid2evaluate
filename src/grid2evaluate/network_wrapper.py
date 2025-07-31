@@ -79,7 +79,14 @@ class NetworkWrapper:
 
     @staticmethod
     def get_id_from_name(elements: pd.DataFrame, name: str) -> str:
-        return elements[(elements['name'] == name)].iloc[0].name
+        found_element = elements[(elements['name'] == name)]
+        if found_element.empty:
+            filtered = elements[elements.index == name]
+            if filtered.empty:
+                return ""
+            else:
+                return name  
+        return found_element.iloc[0].name
 
     @staticmethod
     def _get_voltage_level_id_from_name(elements: pd.DataFrame, name: str, voltage_level_id_attr: str) -> str:
