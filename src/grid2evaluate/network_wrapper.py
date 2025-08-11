@@ -168,7 +168,11 @@ class NetworkWrapper:
         batteries = self._network.get_batteries(attributes=['name', 'voltage_level_id'])
         branches = self.get_branches(attributes=['name', 'voltage_level1_id', 'voltage_level2_id'])
         buses = self._get_numbered_buses(self._network)
-        self._update_loads(load_table, load_p, load_q, load_bus, time_index, loads, buses)
-        self._update_generators(gen_table, gen_p, gen_q, gen_bus, time_index, generators, buses)
-        self._update_batteries(storage_table, storage_power, storage_bus, time_index, batteries)
-        self._update_lines(line_table, line_or_bus, line_ex_bus, time_index, branches, buses)
+        if (len(loads) > 0):
+            self._update_loads(load_table, load_p, load_q, load_bus, time_index, loads, buses)
+        if (len(generators) > 0):
+            self._update_generators(gen_table, gen_p, gen_q, gen_bus, time_index, generators, buses)
+        if (len(batteries) > 0):
+            self._update_batteries(storage_table, storage_power, storage_bus, time_index, batteries, buses)
+        if (len(branches) > 0):
+            self._update_lines(line_table, line_or_bus, line_ex_bus, time_index, branches, buses)
