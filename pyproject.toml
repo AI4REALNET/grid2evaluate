@@ -8,5 +8,5 @@ dependencies = [
     "pandas>=2.2.3",
     "pyarrow>=20.0.0",
     "pypowsybl>=1.11.0",
-    "pandapower==2.14.11"
+    "pandapower>=2.14.11"
 ]
